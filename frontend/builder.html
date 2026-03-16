@@ -3,187 +3,348 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Template Builder – Certificate Generator</title>
+  <title>Template Builder – CertGen</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto:ital,wght@0,300;0,400;0,500;0,700;1,400&family=Roboto+Condensed:wght@400;700&family=Roboto+Slab:wght@300;400;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
   <style>
-    /* Checkerboard pattern shows transparent areas on canvas */
-    #canvas-wrapper {
-      background-image:
-        linear-gradient(45deg, #ccc 25%, transparent 25%),
-        linear-gradient(-45deg, #ccc 25%, transparent 25%),
-        linear-gradient(45deg, transparent 75%, #ccc 75%),
-        linear-gradient(-45deg, transparent 75%, #ccc 75%);
-      background-size: 16px 16px;
-      background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
-      background-color: #e5e7eb;
+    * { font-family: 'Inter', system-ui, sans-serif; }
+    body { background: #0a0f1e; }
+
+    /* Sidebar glassmorphism */
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(99, 102, 241, 0.15);
+      backdrop-filter: blur(20px);
     }
-    /* Prevent canvas size jumping */
-    canvas { display: block; }
-    .var-btn {
-      font-family: monospace;
+
+    /* Canvas area */
+    #canvas-wrapper {
+      background:
+        radial-gradient(ellipse at 20% 50%, rgba(99,102,241,0.08) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 20%, rgba(59,130,246,0.06) 0%, transparent 50%),
+        repeating-conic-gradient(#1e293b 0% 25%, #1a2540 25% 50%) 0 0 / 24px 24px;
+    }
+
+    /* Nav gradient */
+    .nav-bar {
+      background: linear-gradient(135deg, #0a0f1e 0%, #0f1f3d 50%, #0a0f1e 100%);
+      border-bottom: 1px solid rgba(99,102,241,0.3);
+    }
+
+    /* Gradient button */
+    .btn-primary {
+      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      box-shadow: 0 4px 15px rgba(99,102,241,0.35);
+      transition: all 0.2s;
+    }
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(99,102,241,0.5);
+    }
+
+    /* Variable pill buttons */
+    .var-pill {
+      background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(99,102,241,0.15));
+      border: 1px solid rgba(99,102,241,0.35);
+      color: #93c5fd;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      border-radius: 20px;
+      padding: 5px 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: block;
+      width: 100%;
+      text-align: left;
+    }
+    .var-pill:hover {
+      background: linear-gradient(135deg, rgba(59,130,246,0.3), rgba(99,102,241,0.3));
+      border-color: #6366f1;
+      color: #e0e7ff;
+      transform: translateX(3px);
+    }
+
+    /* Section labels */
+    .section-label {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #4b5563;
+    }
+
+    /* Layer items */
+    .layer-item {
+      border: 1px solid rgba(99,102,241,0.1);
+      border-radius: 8px;
+      padding: 6px 8px;
+      cursor: pointer;
+      transition: all 0.15s;
+      color: #94a3b8;
       font-size: 11px;
     }
-    /* Active alignment button highlight */
-    .align-active { background-color: #e0e7ff; border-color: #6366f1; }
+    .layer-item:hover, .layer-item.active {
+      background: rgba(99,102,241,0.15);
+      border-color: rgba(99,102,241,0.4);
+      color: #c7d2fe;
+    }
+
+    /* Property inputs */
+    .prop-input {
+      background: rgba(15,23,42,0.6);
+      border: 1px solid rgba(99,102,241,0.2);
+      border-radius: 8px;
+      color: #e2e8f0;
+      font-size: 12px;
+      padding: 6px 10px;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .prop-input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
+
+    /* Align buttons */
+    .align-btn {
+      flex: 1;
+      border: 1px solid rgba(99,102,241,0.2);
+      border-radius: 8px;
+      padding: 6px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.15s;
+      color: #64748b;
+      font-size: 14px;
+    }
+    .align-btn:hover { border-color: #6366f1; color: #a5b4fc; background: rgba(99,102,241,0.1); }
+    .align-btn.active { background: rgba(99,102,241,0.25); border-color: #6366f1; color: #c7d2fe; }
+
+    /* Style buttons */
+    .style-btn {
+      flex: 1;
+      border: 1px solid rgba(99,102,241,0.2);
+      border-radius: 8px;
+      padding: 7px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.15s;
+      color: #64748b;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .style-btn:hover { border-color: #6366f1; color: #a5b4fc; background: rgba(99,102,241,0.1); }
+    .style-btn.active { background: rgba(99,102,241,0.25); border-color: #6366f1; color: #c7d2fe; }
+
+    /* Scrollbar styling */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.3); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(99,102,241,0.5); }
+
+    /* Canvas shadow */
+    #canvasContainer { box-shadow: 0 0 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(99,102,241,0.2); }
+
+    /* Status bar */
+    .status-bar { background: #060b16; border-top: 1px solid rgba(99,102,241,0.15); }
+
+    /* Tooltip */
+    [title]:hover::after {
+      content: attr(title);
+      position: absolute;
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      white-space: nowrap;
+      bottom: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      pointer-events: none;
+      border: 1px solid rgba(99,102,241,0.3);
+    }
+
+    /* Nav link active */
+    .nav-link-active {
+      color: #a5b4fc;
+      border-bottom: 2px solid #6366f1;
+    }
+
+    /* Upload zone */
+    .upload-zone {
+      border: 1.5px dashed rgba(99,102,241,0.35);
+      border-radius: 12px;
+      padding: 14px 10px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .upload-zone:hover {
+      border-color: #6366f1;
+      background: rgba(99,102,241,0.08);
+    }
+
+    input[type="range"] { accent-color: #6366f1; }
+    input[type="color"] { cursor: pointer; border: none; background: none; }
+    select option { background: #0f172a; }
   </style>
 </head>
-<body class="bg-gray-100 flex flex-col h-screen overflow-hidden select-none">
+<body class="flex flex-col h-screen overflow-hidden text-slate-300">
 
-  <!-- ╔══════════════════════════════════════════════════════╗
-       ║  TOP NAVIGATION BAR                                  ║
-       ╚══════════════════════════════════════════════════════╝ -->
-  <header class="bg-indigo-700 text-white px-4 py-2 flex items-center gap-4 shadow-md flex-shrink-0 z-10">
-    <span class="text-xl">🎓</span>
-    <span class="font-bold text-lg tracking-tight">CertGen</span>
-    <span class="text-indigo-300">|</span>
-    <a href="/templates.html" class="text-indigo-200 hover:text-white text-sm transition-colors">📋 Templates</a>
-    <a href="/generate.html"  class="text-indigo-200 hover:text-white text-sm transition-colors">⚡ Generate</a>
+  <!-- ╔══ NAV ══╗ -->
+  <header class="nav-bar px-5 py-2.5 flex items-center gap-5 flex-shrink-0 z-10">
+    <div class="flex items-center gap-2.5 mr-2">
+      <div class="w-8 h-8 rounded-lg btn-primary flex items-center justify-center text-base">🎓</div>
+      <span class="font-bold text-white text-base tracking-tight">CertGen</span>
+    </div>
+    <div class="h-4 w-px bg-indigo-900"></div>
+    <nav class="flex items-center gap-1">
+      <a href="/templates.html" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-white/5 text-sm transition-all">Templates</a>
+      <a href="/builder.html"   class="px-3 py-1.5 rounded-lg text-sm transition-all nav-link-active bg-indigo-950/50">Builder</a>
+      <a href="/generate.html"  class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-white/5 text-sm transition-all">Generate</a>
+    </nav>
     <div class="ml-auto flex items-center gap-3">
-      <span class="text-indigo-300 text-sm">Template Name:</span>
-      <input
-        id="templateName"
-        type="text"
-        placeholder="my-certificate"
-        maxlength="60"
-        class="text-gray-800 rounded-md px-3 py-1 text-sm w-52 border-2 border-indigo-500 focus:border-white outline-none"
-      />
-      <button
-        onclick="saveTemplate()"
-        class="bg-white text-indigo-700 px-4 py-1.5 rounded-md text-sm font-semibold hover:bg-indigo-50 transition-colors shadow"
-      >
-        💾 Save Template
+      <div class="flex items-center gap-2 bg-slate-900/60 border border-indigo-900/50 rounded-xl px-3 py-1.5">
+        <span class="text-xs text-slate-500">Template:</span>
+        <input id="templateName" type="text" placeholder="my-certificate" maxlength="60"
+          class="bg-transparent text-white text-sm w-44 outline-none placeholder-slate-600" />
+      </div>
+      <button onclick="saveTemplate()" class="btn-primary text-white text-sm font-semibold px-4 py-2 rounded-xl flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+        Save Template
       </button>
     </div>
   </header>
 
-  <!-- ╔══════════════════════════════════════════════════════╗
-       ║  MAIN 3-COLUMN LAYOUT                                ║
-       ╚══════════════════════════════════════════════════════╝ -->
+  <!-- ╔══ MAIN 3-COLUMN ══╗ -->
   <main class="flex flex-1 overflow-hidden">
 
-    <!-- ─── LEFT SIDEBAR ──────────────────────────────────── -->
-    <aside class="w-52 bg-white border-r border-gray-200 flex flex-col overflow-y-auto flex-shrink-0 shadow-sm">
+    <!-- ─── LEFT SIDEBAR ─────────────────────────── -->
+    <aside class="w-52 glass-panel flex flex-col overflow-y-auto flex-shrink-0 border-r border-indigo-900/30">
 
-      <!-- Background -->
-      <section class="p-3 border-b border-gray-100">
-        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Background</p>
-        <label class="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-3 cursor-pointer hover:border-indigo-400 hover:bg-indigo-50 transition-colors text-center">
-          <span class="text-2xl mb-1">🖼</span>
-          <span class="text-xs text-gray-600 font-medium">Upload Image</span>
-          <span class="text-[10px] text-gray-400">JPG / PNG</span>
+      <!-- Background upload -->
+      <div class="p-3 border-b border-indigo-900/20">
+        <p class="section-label mb-2.5">Background</p>
+        <label class="upload-zone block">
+          <div class="text-2xl mb-1">🖼</div>
+          <p class="text-xs text-slate-400 font-medium">Upload Image</p>
+          <p class="text-[10px] text-slate-600 mt-0.5">JPG / PNG</p>
           <input id="bgUpload" type="file" accept="image/*" class="hidden" onchange="loadBackground(event)" />
         </label>
-        <button onclick="removeBackground()" class="mt-2 w-full text-xs text-red-400 hover:text-red-600 transition-colors py-1">
+        <button onclick="removeBackground()" class="mt-2 w-full text-[10px] text-red-400/70 hover:text-red-400 transition-colors py-1 rounded">
           ✕ Remove Background
         </button>
-      </section>
+      </div>
 
-      <!-- Add Elements -->
-      <section class="p-3 border-b border-gray-100">
-        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Elements</p>
-        <button
-          onclick="addTextElement('New Text')"
-          class="w-full text-sm bg-indigo-600 text-white rounded-lg py-2 hover:bg-indigo-700 transition-colors font-medium mb-1 shadow-sm"
-        >
-          ✏️ Add Text Box
+      <!-- Add element -->
+      <div class="p-3 border-b border-indigo-900/20">
+        <p class="section-label mb-2.5">Elements</p>
+        <button onclick="addTextElement('New Text')"
+          class="w-full btn-primary text-white text-xs font-semibold py-2.5 rounded-xl flex items-center justify-center gap-2">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m-8-8h16"/></svg>
+          Add Text Box
         </button>
-      </section>
+      </div>
 
-      <!-- Variable Buttons -->
-      <section class="p-3 border-b border-gray-100">
-        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Insert Variable</p>
-        <div class="flex flex-col gap-1">
-          <button onclick="addTextElement('{{name}}')"           class="var-btn text-left bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded px-2 py-1.5 transition-colors">{{name}}</button>
-          <button onclick="addTextElement('{{course}}')"         class="var-btn text-left bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded px-2 py-1.5 transition-colors">{{course}}</button>
-          <button onclick="addTextElement('{{date}}')"           class="var-btn text-left bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded px-2 py-1.5 transition-colors">{{date}}</button>
-          <button onclick="addTextElement('{{certificate_id}}')" class="var-btn text-left bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded px-2 py-1.5 transition-colors">{{certificate_id}}</button>
-          <button onclick="addTextElement('{{instructor}}')"     class="var-btn text-left bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded px-2 py-1.5 transition-colors">{{instructor}}</button>
+      <!-- Variables -->
+      <div class="p-3 border-b border-indigo-900/20">
+        <p class="section-label mb-2.5">Insert Variable</p>
+        <div class="flex flex-col gap-1.5">
+          <button onclick="addTextElement('{{name}}')"           class="var-pill">{{name}}</button>
+          <button onclick="addTextElement('{{course}}')"         class="var-pill">{{course}}</button>
+          <button onclick="addTextElement('{{date}}')"           class="var-pill">{{date}}</button>
+          <button onclick="addTextElement('{{certificate_id}}')" class="var-pill">{{certificate_id}}</button>
+          <button onclick="addTextElement('{{validity}}')"       class="var-pill">{{validity}}</button>
+          <button onclick="addTextElement('{{cnic}}')"           class="var-pill">{{cnic}}</button>
         </div>
-      </section>
+      </div>
 
-      <!-- Layer List -->
-      <section class="p-3 flex-1">
-        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Layers</p>
-        <div id="layerList" class="text-xs text-gray-400 italic">No elements yet.</div>
-      </section>
+      <!-- Layers -->
+      <div class="p-3 flex-1">
+        <div class="flex items-center justify-between mb-2.5">
+          <p class="section-label">Layers</p>
+          <span id="objCountBadge" class="text-[9px] bg-indigo-950 text-indigo-400 border border-indigo-800/50 rounded-full px-1.5 py-0.5">0</span>
+        </div>
+        <div id="layerList" class="flex flex-col gap-1">
+          <p class="text-[11px] text-slate-600 italic">No elements yet.</p>
+        </div>
+      </div>
 
-      <!-- Canvas Actions -->
-      <section class="p-3 border-t border-gray-100">
-        <button onclick="clearAllElements()" class="w-full text-xs text-red-400 hover:text-red-600 border border-red-200 rounded-lg py-1.5 hover:bg-red-50 transition-colors">
+      <!-- Clear -->
+      <div class="p-3 border-t border-indigo-900/20">
+        <button onclick="clearAllElements()"
+          class="w-full text-[11px] text-red-400/60 hover:text-red-400 border border-red-900/30 hover:border-red-500/40 rounded-xl py-2 transition-all hover:bg-red-950/20">
           🗑 Clear All Elements
         </button>
-      </section>
+      </div>
     </aside>
 
-    <!-- ─── CANVAS AREA ───────────────────────────────────── -->
-    <div class="flex-1 flex flex-col overflow-hidden bg-gray-200">
+    <!-- ─── CANVAS AREA ──────────────────────────── -->
+    <div class="flex-1 flex flex-col overflow-hidden">
       <!-- Canvas toolbar -->
-      <div class="bg-white border-b border-gray-200 px-4 py-1.5 flex items-center gap-3 text-xs text-gray-500 flex-shrink-0">
-        <span>Canvas: <strong>A4 Landscape</strong> (3508 × 2480 px full res)</span>
-        <span class="text-gray-300">|</span>
-        <span id="zoomLabel">Zoom: 25%</span>
-        <span class="text-gray-300">|</span>
-        <span id="posLabel">X: – Y: –</span>
-        <span class="ml-auto text-gray-400">Click an element to select • Double-click text to edit</span>
+      <div class="bg-slate-900/70 border-b border-indigo-900/20 px-5 py-2 flex items-center gap-4 text-[11px] flex-shrink-0">
+        <div class="flex items-center gap-1.5">
+          <div class="w-2 h-2 rounded-full bg-indigo-500/60"></div>
+          <span class="text-slate-400">A4 Portrait</span>
+          <span class="text-slate-600">2480 × 3508 px</span>
+        </div>
+        <div class="h-3 w-px bg-slate-700"></div>
+        <span id="zoomLabel" class="text-slate-500">Zoom: 28%</span>
+        <div class="h-3 w-px bg-slate-700"></div>
+        <span id="posLabel" class="text-slate-600 font-mono">X: – Y: –</span>
+        <span class="ml-auto text-slate-600">Click to select · Double-click to edit text</span>
       </div>
-      <!-- Canvas wrapper (scrollable) -->
-      <div id="canvas-wrapper" class="flex-1 overflow-auto flex items-start justify-start p-6">
-        <div id="canvasContainer" class="shadow-2xl ring-1 ring-gray-400/30">
+      <!-- Canvas scroll area -->
+      <div id="canvas-wrapper" class="flex-1 overflow-auto flex items-start justify-start p-8">
+        <div id="canvasContainer" class="rounded-sm">
           <canvas id="certCanvas"></canvas>
         </div>
       </div>
     </div>
 
-    <!-- ─── RIGHT PROPERTIES PANEL ────────────────────────── -->
-    <aside class="w-56 bg-white border-l border-gray-200 flex flex-col overflow-y-auto flex-shrink-0 shadow-sm">
-      <div class="p-3 border-b border-gray-100">
-        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Properties</p>
+    <!-- ─── RIGHT PROPERTIES ─────────────────────── -->
+    <aside class="w-56 glass-panel flex flex-col overflow-y-auto flex-shrink-0 border-l border-indigo-900/30">
+      <div class="p-3.5 border-b border-indigo-900/20">
+        <p class="section-label">Properties</p>
       </div>
 
-      <!-- No selection state -->
+      <!-- Empty state -->
       <div id="noSelection" class="flex-1 flex flex-col items-center justify-center p-6 text-center">
-        <span class="text-4xl mb-3">👆</span>
-        <p class="text-xs text-gray-400">Select an element on the canvas to edit its properties.</p>
+        <div class="w-12 h-12 rounded-2xl bg-indigo-950/50 border border-indigo-900/30 flex items-center justify-center text-2xl mb-3">👆</div>
+        <p class="text-xs text-slate-600 leading-relaxed">Select an element on the canvas to edit its properties</p>
       </div>
 
-      <!-- Text properties (shown when text is selected) -->
-      <div id="textProps" class="hidden flex flex-col gap-4 p-3">
+      <!-- Properties panel -->
+      <div id="textProps" class="hidden flex flex-col gap-3.5 p-3.5">
 
-        <!-- Text Content -->
+        <!-- Content -->
         <div>
-          <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Content</label>
-          <textarea
-            id="propContent"
-            rows="3"
-            class="w-full border border-gray-200 rounded-lg text-xs p-2 font-mono resize-none focus:border-indigo-400 outline-none"
-            oninput="applyProp('text', this.value)"
-          ></textarea>
+          <label class="section-label block mb-1.5">Text Content</label>
+          <textarea id="propContent" rows="3"
+            class="prop-input resize-none font-mono text-[11px] leading-relaxed"
+            oninput="applyProp('text', this.value)"></textarea>
         </div>
 
-        <!-- Font Size -->
+        <!-- Font size -->
         <div>
-          <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Font Size (display px)</label>
-          <div class="flex items-center gap-1">
-            <button onclick="adjustFontSize(-2)" class="w-7 h-7 border rounded text-sm hover:bg-gray-100 flex-shrink-0">−</button>
-            <input
-              id="propFontSize"
-              type="number" min="4" max="400" step="1"
-              class="flex-1 border border-gray-200 rounded text-xs text-center p-1 focus:border-indigo-400 outline-none"
-              oninput="applyProp('fontSize', parseFloat(this.value) || 24)"
-            />
-            <button onclick="adjustFontSize(2)"  class="w-7 h-7 border rounded text-sm hover:bg-gray-100 flex-shrink-0">+</button>
+          <label class="section-label block mb-1.5">Font Size <span id="fontSizeDisplay" class="text-indigo-400 normal-case font-mono ml-1">24</span></label>
+          <div class="flex items-center gap-1.5">
+            <button onclick="adjustFontSize(-2)" class="w-8 h-8 rounded-lg border border-indigo-900/40 text-slate-400 hover:border-indigo-500 hover:text-indigo-300 transition-all text-sm flex-shrink-0 flex items-center justify-center">−</button>
+            <input id="propFontSize" type="number" min="4" max="400" step="1"
+              class="prop-input text-center text-xs"
+              oninput="syncFontSizeDisplay(this.value); applyProp('fontSize', parseFloat(this.value)||24)" />
+            <button onclick="adjustFontSize(2)"  class="w-8 h-8 rounded-lg border border-indigo-900/40 text-slate-400 hover:border-indigo-500 hover:text-indigo-300 transition-all text-sm flex-shrink-0 flex items-center justify-center">+</button>
           </div>
         </div>
 
-        <!-- Font Family -->
+        <!-- Font family -->
         <div>
-          <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Font Family</label>
-          <select
-            id="propFontFamily"
-            class="w-full border border-gray-200 rounded text-xs p-1.5 focus:border-indigo-400 outline-none"
-            onchange="applyProp('fontFamily', this.value)"
-          >
+          <label class="section-label block mb-1.5">Font Family</label>
+          <select id="propFontFamily" class="prop-input" onchange="applyProp('fontFamily', this.value)">
+            <option value="Roboto">Roboto</option>
+            <option value="Roboto Condensed">Roboto Condensed</option>
+            <option value="Roboto Slab">Roboto Slab</option>
             <option value="Arial">Arial</option>
             <option value="Georgia">Georgia</option>
             <option value="Times New Roman">Times New Roman</option>
@@ -198,224 +359,165 @@
 
         <!-- Color -->
         <div>
-          <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Text Color</label>
+          <label class="section-label block mb-1.5">Text Color</label>
           <div class="flex items-center gap-2">
-            <input
-              id="propColor"
-              type="color"
-              value="#333333"
-              class="w-10 h-8 border border-gray-200 rounded cursor-pointer"
-              oninput="applyProp('fill', this.value)"
-            />
-            <input
-              id="propColorHex"
-              type="text"
-              maxlength="7"
-              class="flex-1 border border-gray-200 rounded text-xs p-1.5 font-mono focus:border-indigo-400 outline-none"
-              oninput="syncColorFromHex(this.value)"
-              placeholder="#333333"
-            />
+            <div class="relative w-9 h-9 rounded-lg overflow-hidden border border-indigo-900/40 flex-shrink-0 cursor-pointer hover:border-indigo-500 transition-colors">
+              <input id="propColor" type="color" value="#ffffff"
+                class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                oninput="syncColorHex(this.value)" />
+              <div id="colorSwatch" class="w-full h-full bg-white pointer-events-none"></div>
+            </div>
+            <input id="propColorHex" type="text" maxlength="7" placeholder="#ffffff"
+              class="prop-input font-mono text-xs"
+              oninput="syncColorFromHex(this.value)" />
           </div>
         </div>
 
         <!-- Alignment -->
         <div>
-          <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Text Align</label>
-          <div class="flex gap-1">
-            <button id="alignLeft"   onclick="setAlign('left')"   class="flex-1 border rounded py-1.5 text-sm hover:bg-indigo-50 transition-colors" title="Left">⬅️</button>
-            <button id="alignCenter" onclick="setAlign('center')" class="flex-1 border rounded py-1.5 text-sm hover:bg-indigo-50 transition-colors" title="Center">↔️</button>
-            <button id="alignRight"  onclick="setAlign('right')"  class="flex-1 border rounded py-1.5 text-sm hover:bg-indigo-50 transition-colors" title="Right">➡️</button>
+          <label class="section-label block mb-1.5">Alignment</label>
+          <div class="flex gap-1.5">
+            <button id="alignLeft"   onclick="setAlign('left')"   class="align-btn" title="Align Left">⬅</button>
+            <button id="alignCenter" onclick="setAlign('center')" class="align-btn" title="Center">↔</button>
+            <button id="alignRight"  onclick="setAlign('right')"  class="align-btn" title="Align Right">➡</button>
           </div>
         </div>
 
         <!-- Bold / Italic -->
         <div>
-          <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Style</label>
-          <div class="flex gap-1">
-            <button id="btnBold"   onclick="toggleBold()"   class="flex-1 border rounded py-1.5 font-bold text-sm hover:bg-indigo-50 transition-colors">B</button>
-            <button id="btnItalic" onclick="toggleItalic()" class="flex-1 border rounded py-1.5 italic text-sm hover:bg-indigo-50 transition-colors">I</button>
+          <label class="section-label block mb-1.5">Style</label>
+          <div class="flex gap-1.5">
+            <button id="btnBold"   onclick="toggleBold()"   class="style-btn">B</button>
+            <button id="btnItalic" onclick="toggleItalic()" class="style-btn italic">I</button>
           </div>
         </div>
 
-        <!-- Position (read-only display) -->
+        <!-- Position display -->
         <div>
-          <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Position (full-res px)</label>
-          <div class="flex gap-1 text-xs">
-            <div class="flex-1 border border-gray-100 rounded p-1 bg-gray-50">X: <span id="propX">–</span></div>
-            <div class="flex-1 border border-gray-100 rounded p-1 bg-gray-50">Y: <span id="propY">–</span></div>
+          <label class="section-label block mb-1.5">Position (full-res px)</label>
+          <div class="flex gap-1.5 text-[11px]">
+            <div class="flex-1 bg-slate-900/60 border border-indigo-900/20 rounded-lg p-1.5 font-mono text-center text-slate-500">
+              X: <span id="propX" class="text-slate-400">–</span>
+            </div>
+            <div class="flex-1 bg-slate-900/60 border border-indigo-900/20 rounded-lg p-1.5 font-mono text-center text-slate-500">
+              Y: <span id="propY" class="text-slate-400">–</span>
+            </div>
           </div>
         </div>
 
-        <!-- Layer controls -->
+        <!-- Layer order -->
         <div>
-          <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Layer</label>
-          <div class="flex gap-1">
-            <button onclick="bringToFront()"  class="flex-1 border rounded py-1 text-xs hover:bg-indigo-50 transition-colors">⬆ Front</button>
-            <button onclick="sendToBackward()" class="flex-1 border rounded py-1 text-xs hover:bg-indigo-50 transition-colors">⬇ Back</button>
+          <label class="section-label block mb-1.5">Layer Order</label>
+          <div class="flex gap-1.5">
+            <button onclick="bringToFront()"   class="flex-1 text-[11px] border border-indigo-900/30 rounded-lg py-1.5 text-slate-500 hover:text-indigo-300 hover:border-indigo-600 transition-all">⬆ Front</button>
+            <button onclick="sendToBackward()" class="flex-1 text-[11px] border border-indigo-900/30 rounded-lg py-1.5 text-slate-500 hover:text-indigo-300 hover:border-indigo-600 transition-all">⬇ Back</button>
           </div>
         </div>
 
         <!-- Delete -->
-        <button
-          onclick="deleteSelected()"
-          class="w-full bg-red-50 text-red-500 border border-red-200 rounded-lg py-2 text-xs font-medium hover:bg-red-100 transition-colors mt-2"
-        >
+        <button onclick="deleteSelected()"
+          class="w-full bg-red-950/30 text-red-400/70 hover:text-red-400 border border-red-900/30 hover:border-red-500/50 rounded-xl py-2.5 text-xs font-medium transition-all hover:bg-red-950/50">
           🗑 Delete Element
         </button>
       </div>
     </aside>
   </main>
 
-  <!-- ─── STATUS BAR ────────────────────────────────────────── -->
-  <footer class="bg-gray-800 text-green-400 text-xs px-4 py-1 font-mono flex items-center gap-4 flex-shrink-0">
-    <span id="statusMsg">Ready – design your certificate template.</span>
-    <span class="ml-auto text-gray-500" id="objCount">0 elements</span>
+  <!-- ─── STATUS BAR ──────────────────────────────── -->
+  <footer class="status-bar text-[11px] px-5 py-1.5 flex items-center gap-4 flex-shrink-0">
+    <div class="w-1.5 h-1.5 rounded-full bg-indigo-500 flex-shrink-0"></div>
+    <span id="statusMsg" class="text-slate-500 font-mono">Ready — upload a background and start adding elements</span>
+    <span class="ml-auto text-slate-700 font-mono" id="objCount">0 elements</span>
   </footer>
 
-  <!-- ════════════════════════════════════════════════════════
-       JAVASCRIPT
-       ════════════════════════════════════════════════════════ -->
+  <!-- ════════ SCRIPT ════════ -->
   <script>
-  /* ───────────────────────────────────────────────────────────
-     CONSTANTS
-     A4 Landscape: 3508 × 2480 at 300 dpi
-     Display scale: 1/4  →  877 × 620 pixels on screen
-  ─────────────────────────────────────────────────────────── */
-  const SCALE    = 4;          // display → full-res multiplier
-  const DISP_W   = 877;        // 3508 / 4
-  const DISP_H   = 620;        // 2480 / 4
-  const FULL_W   = 3508;
-  const FULL_H   = 2480;
+  /* ── A4 Portrait: 2480 × 3508 at 300 dpi ──────────────────
+     Display scale = 1/3.55 → ~698 × 988 px
+     Use SCALE = 4 for easier math: 620 × 877 px display      */
+  const SCALE  = 4;
+  const DISP_W = 620;   // 2480 / 4
+  const DISP_H = 877;   // 3508 / 4  (rounded)
+  const FULL_W = 2480;
+  const FULL_H = 3508;
 
-  let canvas        = null;
-  let bgImageObj    = null;   // Fabric Image object used as background
-  let bgFileToUpload = null;  // Raw File object for upload
+  let canvas         = null;
+  let bgImageObj     = null;
+  let bgFileToUpload = null;
 
-  /* ──────────────────────────────────────────────────────────
-     INIT
-  ────────────────────────────────────────────────────────── */
   window.addEventListener('DOMContentLoaded', () => {
     initCanvas();
-    // Auto-load template if ?edit=name is in URL
     const edit = new URLSearchParams(window.location.search).get('edit');
-    if (edit) {
-      document.getElementById('templateName').value = edit;
-      loadTemplate(edit);
-    }
+    if (edit) { document.getElementById('templateName').value = edit; loadTemplate(edit); }
   });
 
   function initCanvas() {
     canvas = new fabric.Canvas('certCanvas', {
-      width:                  DISP_W,
-      height:                 DISP_H,
-      backgroundColor:        '#ffffff',
+      width: DISP_W, height: DISP_H,
+      backgroundColor: '#ffffff',
       preserveObjectStacking: true,
-      selection:              true,
+      selection: true,
     });
-
-    // Event listeners
-    canvas.on('selection:created',  e => onSelect(e.selected[0]));
-    canvas.on('selection:updated',  e => onSelect(e.selected[0]));
+    canvas.on('selection:created', e => onSelect(e.selected[0]));
+    canvas.on('selection:updated', e => onSelect(e.selected[0]));
     canvas.on('selection:cleared',  onDeselect);
-    canvas.on('object:modified',    () => { refreshLayerList(); updatePosDisplay(); });
-    canvas.on('mouse:move',         e  => updateCursorPos(e));
-
-    setStatus('Canvas ready — upload a background or start adding text elements.');
+    canvas.on('object:modified',   () => { refreshLayerList(); updatePosDisplay(); });
+    canvas.on('mouse:move',        e  => updateCursorPos(e));
   }
 
-  /* ──────────────────────────────────────────────────────────
-     BACKGROUND
-  ────────────────────────────────────────────────────────── */
+  /* ── Background ─────────────────────────────── */
   function loadBackground(event) {
     const file = event.target.files[0];
     if (!file) return;
-
     bgFileToUpload = file;
-    const reader   = new FileReader();
-
-    reader.onload = (e) => {
-      fabric.Image.fromURL(e.target.result, (img) => {
-        img.set({
-          left:           0,
-          top:            0,
-          scaleX:         DISP_W / img.width,
-          scaleY:         DISP_H / img.height,
-          selectable:     false,
-          evented:        false,
-          lockMovementX:  true,
-          lockMovementY:  true,
-          hasControls:    false,
-          hasBorders:     false,
-        });
-
+    const reader = new FileReader();
+    reader.onload = e => {
+      fabric.Image.fromURL(e.target.result, img => {
+        img.set({ left:0, top:0, scaleX: DISP_W/img.width, scaleY: DISP_H/img.height,
+          selectable:false, evented:false, hasControls:false, hasBorders:false });
         if (bgImageObj) canvas.remove(bgImageObj);
         bgImageObj = img;
-        canvas.add(img);
-        canvas.sendToBack(img);
-        canvas.renderAll();
-        setStatus('Background image loaded.');
+        canvas.add(img); canvas.sendToBack(img); canvas.renderAll();
+        setStatus('✓ Background image loaded');
       });
     };
-
     reader.readAsDataURL(file);
-    // Clear input so same file can be re-selected
     event.target.value = '';
   }
 
   function removeBackground() {
-    if (bgImageObj) {
-      canvas.remove(bgImageObj);
-      bgImageObj     = null;
-      bgFileToUpload = null;
-      canvas.renderAll();
-      setStatus('Background removed.');
-    }
+    if (bgImageObj) { canvas.remove(bgImageObj); bgImageObj = null; bgFileToUpload = null; canvas.renderAll(); setStatus('Background removed'); }
   }
 
-  /* ──────────────────────────────────────────────────────────
-     ADD TEXT ELEMENT
-  ────────────────────────────────────────────────────────── */
+  /* ── Add text ─────────────────────────────── */
   function addTextElement(content) {
     const text = new fabric.IText(content, {
-      left:        DISP_W / 2,
-      top:         DISP_H / 2,
-      originX:     'center',
-      originY:     'center',
-      fontSize:    28,
-      fontFamily:  'Georgia',
-      fill:        '#1a1a1a',
-      textAlign:   'center',
-      editable:    true,
-      padding:     4,
+      left: DISP_W/2, top: DISP_H/2, originX:'center', originY:'center',
+      fontSize: 22, fontFamily: 'Georgia', fill: '#1a1a2e', textAlign: 'center',
+      editable: true, padding: 4,
     });
-
-    canvas.add(text);
-    canvas.setActiveObject(text);
-    canvas.renderAll();
-    refreshLayerList();
-    setStatus(`Added: ${content}`);
+    canvas.add(text); canvas.setActiveObject(text); canvas.renderAll();
+    refreshLayerList(); setStatus(`Added: ${content}`);
   }
 
-  /* ──────────────────────────────────────────────────────────
-     SELECTION HANDLERS
-  ────────────────────────────────────────────────────────── */
+  /* ── Selection ─────────────────────────────── */
   function onSelect(obj) {
     if (!obj || obj === bgImageObj) { onDeselect(); return; }
-
     document.getElementById('noSelection').classList.add('hidden');
     document.getElementById('textProps').classList.remove('hidden');
 
-    // Populate property fields
     document.getElementById('propContent').value    = obj.text       || '';
     document.getElementById('propFontSize').value   = Math.round(obj.fontSize);
+    document.getElementById('fontSizeDisplay').textContent = Math.round(obj.fontSize);
     document.getElementById('propFontFamily').value = obj.fontFamily || 'Arial';
-    document.getElementById('propColor').value      = obj.fill       || '#333333';
-    document.getElementById('propColorHex').value   = obj.fill       || '#333333';
+    const col = obj.fill || '#ffffff';
+    document.getElementById('propColor').value      = col;
+    document.getElementById('propColorHex').value   = col;
+    document.getElementById('colorSwatch').style.background = col;
 
     updateAlignButtons(obj.textAlign || 'left');
-    document.getElementById('btnBold').classList.toggle('bg-indigo-100', obj.fontWeight === 'bold');
-    document.getElementById('btnItalic').classList.toggle('bg-indigo-100', obj.fontStyle === 'italic');
-
+    document.getElementById('btnBold').classList.toggle('active', obj.fontWeight === 'bold');
+    document.getElementById('btnItalic').classList.toggle('active', obj.fontStyle === 'italic');
     updatePosDisplay(obj);
   }
 
@@ -424,300 +526,187 @@
     document.getElementById('textProps').classList.add('hidden');
   }
 
-  /* ──────────────────────────────────────────────────────────
-     PROPERTY SETTERS
-  ────────────────────────────────────────────────────────── */
+  /* ── Props ──────────────────────────────────── */
   function applyProp(prop, value) {
-    const obj = canvas.getActiveObject();
-    if (!obj) return;
-    obj.set(prop, value);
-    canvas.renderAll();
-    if (prop === 'fontSize') updatePosDisplay(obj);
+    const obj = canvas.getActiveObject(); if (!obj) return;
+    obj.set(prop, value); canvas.renderAll();
+    if (prop === 'fontSize') { document.getElementById('fontSizeDisplay').textContent = Math.round(value); updatePosDisplay(obj); }
   }
 
-  function adjustFontSize(delta) {
-    const input = document.getElementById('propFontSize');
-    const next  = Math.max(4, Math.min(400, (parseFloat(input.value) || 24) + delta));
-    input.value = next;
-    applyProp('fontSize', next);
+  function adjustFontSize(d) {
+    const inp = document.getElementById('propFontSize');
+    const nxt = Math.max(4, Math.min(400, (parseFloat(inp.value)||22) + d));
+    inp.value = nxt; syncFontSizeDisplay(nxt); applyProp('fontSize', nxt);
   }
 
-  function setAlign(align) {
-    applyProp('textAlign', align);
-    updateAlignButtons(align);
-  }
+  function syncFontSizeDisplay(v) { document.getElementById('fontSizeDisplay').textContent = Math.round(v); }
 
-  function updateAlignButtons(align) {
-    ['Left', 'Center', 'Right'].forEach(a => {
-      document.getElementById('align' + a).classList.toggle('align-active', a.toLowerCase() === align);
+  function setAlign(a) { applyProp('textAlign', a); updateAlignButtons(a); }
+
+  function updateAlignButtons(a) {
+    ['Left','Center','Right'].forEach(x => {
+      document.getElementById('align'+x).classList.toggle('active', x.toLowerCase() === a);
     });
   }
 
   function toggleBold() {
-    const obj = canvas.getActiveObject();
-    if (!obj) return;
-    const bold = obj.fontWeight !== 'bold';
-    obj.set('fontWeight', bold ? 'bold' : 'normal');
-    document.getElementById('btnBold').classList.toggle('bg-indigo-100', bold);
-    canvas.renderAll();
+    const obj = canvas.getActiveObject(); if (!obj) return;
+    const b = obj.fontWeight !== 'bold'; obj.set('fontWeight', b ? 'bold':'normal');
+    document.getElementById('btnBold').classList.toggle('active', b); canvas.renderAll();
   }
 
   function toggleItalic() {
-    const obj = canvas.getActiveObject();
-    if (!obj) return;
-    const italic = obj.fontStyle !== 'italic';
-    obj.set('fontStyle', italic ? 'italic' : 'normal');
-    document.getElementById('btnItalic').classList.toggle('bg-indigo-100', italic);
-    canvas.renderAll();
+    const obj = canvas.getActiveObject(); if (!obj) return;
+    const it = obj.fontStyle !== 'italic'; obj.set('fontStyle', it ? 'italic':'normal');
+    document.getElementById('btnItalic').classList.toggle('active', it); canvas.renderAll();
+  }
+
+  function syncColorHex(hex) {
+    document.getElementById('propColorHex').value = hex;
+    document.getElementById('colorSwatch').style.background = hex;
+    applyProp('fill', hex);
   }
 
   function syncColorFromHex(hex) {
     if (/^#[0-9a-fA-F]{6}$/.test(hex)) {
       document.getElementById('propColor').value = hex;
+      document.getElementById('colorSwatch').style.background = hex;
       applyProp('fill', hex);
     }
   }
 
-  /* ──────────────────────────────────────────────────────────
-     DELETE / LAYER CONTROLS
-  ────────────────────────────────────────────────────────── */
+  /* ── Delete / Layer ─────────────────────────── */
   function deleteSelected() {
     const obj = canvas.getActiveObject();
-    if (obj && obj !== bgImageObj) {
-      canvas.remove(obj);
-      onDeselect();
-      canvas.renderAll();
-      refreshLayerList();
-      setStatus('Element deleted.');
-    }
+    if (obj && obj !== bgImageObj) { canvas.remove(obj); onDeselect(); canvas.renderAll(); refreshLayerList(); setStatus('Element deleted'); }
   }
-
-  function bringToFront() {
-    const obj = canvas.getActiveObject();
-    if (obj) { canvas.bringToFront(obj); canvas.renderAll(); }
-  }
-
-  function sendToBackward() {
-    const obj = canvas.getActiveObject();
-    if (obj && obj !== bgImageObj) { canvas.sendBackwards(obj, true); canvas.renderAll(); }
-  }
-
+  function bringToFront()   { const o=canvas.getActiveObject(); if(o){canvas.bringToFront(o);canvas.renderAll();} }
+  function sendToBackward() { const o=canvas.getActiveObject(); if(o&&o!==bgImageObj){canvas.sendBackwards(o,true);canvas.renderAll();} }
   function clearAllElements() {
     if (!confirm('Delete all text elements? Background will be kept.')) return;
-    canvas.getObjects()
-      .filter(o => o !== bgImageObj)
-      .forEach(o => canvas.remove(o));
-    onDeselect();
-    canvas.renderAll();
-    refreshLayerList();
-    setStatus('All elements cleared.');
+    canvas.getObjects().filter(o=>o!==bgImageObj).forEach(o=>canvas.remove(o));
+    onDeselect(); canvas.renderAll(); refreshLayerList(); setStatus('All elements cleared');
   }
 
-  /* ──────────────────────────────────────────────────────────
-     LAYER LIST
-  ────────────────────────────────────────────────────────── */
+  /* ── Layer list ─────────────────────────────── */
   function refreshLayerList() {
     const list  = document.getElementById('layerList');
-    const objs  = canvas.getObjects().filter(o => o !== bgImageObj).reverse();
+    const objs  = canvas.getObjects().filter(o=>o!==bgImageObj).reverse();
     const count = objs.length;
-
-    document.getElementById('objCount').textContent = `${count} element${count !== 1 ? 's' : ''}`;
-
+    document.getElementById('objCountBadge').textContent = count;
+    document.getElementById('objCount').textContent = `${count} element${count!==1?'s':''}`;
     if (count === 0) {
-      list.innerHTML = '<span class="italic text-gray-400">No elements yet.</span>';
+      list.innerHTML = '<p class="text-[11px] text-slate-600 italic">No elements yet.</p>';
       return;
     }
-
     list.innerHTML = objs.map((obj, i) => {
-      const label = (obj.text || 'Object').substring(0, 22);
+      const label   = (obj.text||'Object').substring(0,20);
       const isActive = obj === canvas.getActiveObject();
-      return `<div
-        class="py-1 px-1.5 rounded text-gray-600 hover:bg-indigo-50 cursor-pointer truncate ${isActive ? 'bg-indigo-50 text-indigo-700' : ''}"
-        onclick="selectLayerObj(${canvas.getObjects().indexOf(obj)})"
-        title="${escapeAttr(obj.text || '')}"
-      >${count - i}. ${escapeHtml(label)}</div>`;
+      return `<div class="layer-item${isActive?' active':''}" onclick="selectLayerObj(${canvas.getObjects().indexOf(obj)})" title="${escAttr(obj.text||'')}">
+        <span class="text-slate-600 mr-1">${count-i}.</span> ${escHtml(label)}
+      </div>`;
     }).join('');
   }
 
   function selectLayerObj(idx) {
     const obj = canvas.getObjects()[idx];
-    if (obj && obj !== bgImageObj) {
-      canvas.setActiveObject(obj);
-      canvas.renderAll();
-      onSelect(obj);
-    }
+    if (obj && obj !== bgImageObj) { canvas.setActiveObject(obj); canvas.renderAll(); onSelect(obj); }
   }
 
-  /* ──────────────────────────────────────────────────────────
-     POSITION / CURSOR DISPLAY
-  ────────────────────────────────────────────────────────── */
+  /* ── Position ───────────────────────────────── */
   function updatePosDisplay(obj) {
-    obj = obj || canvas.getActiveObject();
-    if (!obj) return;
-    // Convert display coords → full resolution
-    const bounds = obj.getBoundingRect(true);
-    document.getElementById('propX').textContent = Math.round(bounds.left * SCALE);
-    document.getElementById('propY').textContent = Math.round(bounds.top  * SCALE);
+    obj = obj || canvas.getActiveObject(); if (!obj) return;
+    const b = obj.getBoundingRect(true);
+    document.getElementById('propX').textContent = Math.round(b.left*SCALE);
+    document.getElementById('propY').textContent = Math.round(b.top*SCALE);
   }
 
   function updateCursorPos(e) {
     const pt = canvas.getPointer(e.e);
-    document.getElementById('posLabel').textContent =
-      `X: ${Math.round(pt.x * SCALE)}  Y: ${Math.round(pt.y * SCALE)}`;
+    document.getElementById('posLabel').textContent = `X: ${Math.round(pt.x*SCALE)}  Y: ${Math.round(pt.y*SCALE)}`;
   }
 
-  /* ──────────────────────────────────────────────────────────
-     SAVE TEMPLATE
-  ────────────────────────────────────────────────────────── */
+  /* ── Save ───────────────────────────────────── */
   async function saveTemplate() {
     const name = document.getElementById('templateName').value.trim();
-    if (!name) {
-      alert('Please enter a template name before saving.');
-      return;
-    }
+    if (!name) { alert('Please enter a template name before saving.'); return; }
+    setStatus('Saving template…');
 
-    setStatus('💾 Saving template…');
-
-    // ── Build layout.json with full-resolution coordinates ──────────────
     const elements = [];
-
     canvas.getObjects().forEach(obj => {
       if (obj === bgImageObj) return;
       if (obj.type !== 'i-text' && obj.type !== 'text') return;
-
-      // Get bounding rect in display pixels, then scale to full resolution
-      const bounds   = obj.getBoundingRect(true);
-      const scaleAmt = obj.scaleX || 1;
-
+      const b    = obj.getBoundingRect(true);
+      const scX  = obj.scaleX || 1;
       elements.push({
-        type:       'text',
-        value:      obj.text || '',
-        x:          Math.round(bounds.left   * SCALE),
-        y:          Math.round(bounds.top    * SCALE),
-        width:      Math.round(bounds.width  * SCALE),
-        height:     Math.round(bounds.height * SCALE),
-        fontSize:   Math.round(obj.fontSize * scaleAmt * SCALE),
-        fontFamily: obj.fontFamily  || 'Arial',
-        fontWeight: obj.fontWeight  || 'normal',
-        fontStyle:  obj.fontStyle   || 'normal',
-        align:      obj.textAlign   || 'left',
-        color:      obj.fill        || '#000000',
+        type:'text', value: obj.text||'',
+        x: Math.round(b.left*SCALE), y: Math.round(b.top*SCALE),
+        width: Math.round(b.width*SCALE), height: Math.round(b.height*SCALE),
+        fontSize: Math.round(obj.fontSize*scX*SCALE),
+        fontFamily: obj.fontFamily||'Arial', fontWeight: obj.fontWeight||'normal',
+        fontStyle: obj.fontStyle||'normal', align: obj.textAlign||'left', color: obj.fill||'#000000',
       });
     });
 
-    const layout = { width: FULL_W, height: FULL_H, elements };
-
+    const layout   = { width:FULL_W, height:FULL_H, elements };
     const formData = new FormData();
     formData.append('layout', JSON.stringify(layout, null, 2));
     if (bgFileToUpload) formData.append('background', bgFileToUpload);
 
     try {
-      const res = await fetch(`/api/templates/${encodeURIComponent(name)}`, {
-        method: 'POST',
-        body:   formData,
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || 'Server error');
-      }
-      setStatus(`✅ Template "${name}" saved! ${elements.length} element(s).`);
-    } catch (err) {
-      setStatus(`❌ Save failed: ${err.message}`);
-      alert('Save failed: ' + err.message);
-    }
+      const res = await fetch(`/api/templates/${encodeURIComponent(name)}`, { method:'POST', body:formData });
+      if (!res.ok) throw new Error((await res.json()).error||'Server error');
+      setStatus(`✓ Template "${name}" saved — ${elements.length} element(s)`);
+    } catch (err) { setStatus(`✗ Save failed: ${err.message}`); alert('Save failed: '+err.message); }
   }
 
-  /* ──────────────────────────────────────────────────────────
-     LOAD TEMPLATE (when ?edit=name is in URL)
-  ────────────────────────────────────────────────────────── */
+  /* ── Load template (when ?edit=name) ──────── */
   async function loadTemplate(name) {
-    setStatus(`Loading template "${name}"…`);
+    setStatus(`Loading "${name}"…`);
     try {
       const res    = await fetch(`/api/templates/${encodeURIComponent(name)}`);
       if (!res.ok) throw new Error('Template not found');
       const layout = await res.json();
 
-      // Clear canvas
-      canvas.clear();
-      canvas.backgroundColor = '#ffffff';
-      bgImageObj    = null;
-      bgFileToUpload = null;
+      canvas.clear(); canvas.backgroundColor = '#ffffff';
+      bgImageObj = null; bgFileToUpload = null;
 
-      // Load background image
-      const bgUrl = `/templates/${encodeURIComponent(name)}/background.jpg?t=${Date.now()}`;
       await new Promise(resolve => {
-        fabric.Image.fromURL(bgUrl, (img) => {
+        fabric.Image.fromURL(`/templates/${encodeURIComponent(name)}/background.jpg?t=${Date.now()}`, img => {
           if (img && img.width > 0) {
-            img.set({
-              left: 0, top: 0,
-              scaleX: DISP_W / img.width,
-              scaleY: DISP_H / img.height,
-              selectable: false, evented: false,
-              hasControls: false, hasBorders: false,
-            });
-            bgImageObj = img;
-            canvas.add(img);
-            canvas.sendToBack(img);
+            img.set({ left:0, top:0, scaleX:DISP_W/img.width, scaleY:DISP_H/img.height,
+              selectable:false, evented:false, hasControls:false, hasBorders:false });
+            bgImageObj = img; canvas.add(img); canvas.sendToBack(img);
           }
           resolve();
-        }, { crossOrigin: 'anonymous' });
+        }, { crossOrigin:'anonymous' });
       });
 
-      // Re-create text elements (scale down from full-res to display)
-      (layout.elements || []).forEach(el => {
+      (layout.elements||[]).forEach(el => {
         if (el.type !== 'text') return;
-
-        const dispX      = el.x      / SCALE;
-        const dispY      = el.y      / SCALE;
-        const dispW      = el.width  / SCALE;
-        const dispH      = el.height / SCALE;
-        const dispFont   = el.fontSize / SCALE;
-
-        const text = new fabric.IText(el.value || '', {
-          left:       dispX + dispW / 2,
-          top:        dispY + dispH / 2,
-          originX:    'center',
-          originY:    'center',
-          fontSize:   dispFont,
-          fontFamily: el.fontFamily || 'Arial',
-          fontWeight: el.fontWeight || 'normal',
-          fontStyle:  el.fontStyle  || 'normal',
-          textAlign:  el.align      || 'left',
-          fill:       el.color      || '#000000',
-          editable:   true,
-          padding:    4,
+        const text = new fabric.IText(el.value||'', {
+          left: el.x/SCALE + (el.width/SCALE)/2, top: el.y/SCALE + (el.height/SCALE)/2,
+          originX:'center', originY:'center',
+          fontSize: el.fontSize/SCALE, fontFamily: el.fontFamily||'Arial',
+          fontWeight: el.fontWeight||'normal', fontStyle: el.fontStyle||'normal',
+          textAlign: el.align||'left', fill: el.color||'#000000', editable:true, padding:4,
         });
         canvas.add(text);
       });
 
-      canvas.renderAll();
-      refreshLayerList();
-      setStatus(`Template "${name}" loaded — ${(layout.elements || []).length} element(s).`);
-    } catch (err) {
-      setStatus(`❌ Failed to load template: ${err.message}`);
-    }
+      canvas.renderAll(); refreshLayerList();
+      setStatus(`✓ Template "${name}" loaded — ${(layout.elements||[]).length} element(s)`);
+    } catch (err) { setStatus(`✗ Failed to load: ${err.message}`); }
   }
 
-  /* ──────────────────────────────────────────────────────────
-     UTILITIES
-  ────────────────────────────────────────────────────────── */
-  function setStatus(msg) {
-    document.getElementById('statusMsg').textContent = msg;
-  }
+  /* ── Util ───────────────────────────────────── */
+  function setStatus(msg) { document.getElementById('statusMsg').textContent = msg; }
+  function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function escAttr(s) { return String(s).replace(/"/g,'&quot;'); }
 
-  function escapeHtml(str) {
-    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  }
-
-  function escapeAttr(str) {
-    return String(str).replace(/"/g, '&quot;');
-  }
-
-  // Keyboard shortcuts
   document.addEventListener('keydown', e => {
-    if ((e.key === 'Delete' || e.key === 'Backspace') && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+    if ((e.key==='Delete'||e.key==='Backspace') && e.target.tagName!=='INPUT' && e.target.tagName!=='TEXTAREA')
       deleteSelected();
-    }
   });
   </script>
 </body>
